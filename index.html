@@ -59,19 +59,15 @@
       messagingSenderId: "661281067613",
       appId: "1:661281067613:web:28f7fad9397809b636b3b4"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     let annonces = [];
     let currentIndex = 0;
-
     db.ref('annonces').on('value', snapshot => {
       annonces = Object.entries(snapshot.val() || {}).map(([id, data]) => ({ id, ...data }));
       renderCard();
       renderDashboard();
     });
-
     function renderCard() {
       const data = annonces[currentIndex];
       if (!data) return;
@@ -82,7 +78,6 @@
         <a href="${data.lien}" target="_blank">Voir l’annonce</a>
       `;
     }
-
     function renderDashboard() {
       const dash = document.getElementById('dashboard');
       dash.innerHTML = annonces.map(a => `
@@ -96,22 +91,18 @@
         </div>
       `).join('');
     }
-
     function switchTab(id) {
       document.querySelectorAll('#app > section').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
-
     function nextCard() {
       if (currentIndex < annonces.length - 1) currentIndex++;
       renderCard();
     }
-
     function prevCard() {
       if (currentIndex > 0) currentIndex--;
       renderCard();
     }
-
     function addAnnonce() {
       const newAnnonce = {
         titre: document.getElementById('new-title').value,
