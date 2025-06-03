@@ -1,1 +1,138 @@
-Fichier corrigé Firebase à réinsérer ici (voir script complet précédent)
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comparateur d'annonces</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f9f9f9; color: #333; }
+    header { background: #fff; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.1); text-align: center; font-size: 1.2rem; font-weight: bold; }
+    #nav { display: flex; justify-content: space-around; background: #eee; padding: 0.5rem; }
+    #nav button { flex: 1; padding: 0.7rem; border: none; background: none; font-weight: bold; cursor: pointer; }
+    #app > section { display: none; padding: 1rem; }
+    section.active { display: block; }
+    .card { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { font-weight: 600; margin-bottom: 0.3rem; display: block; }
+    input, textarea { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 5px; }
+    .photo { width: 100%; border-radius: 10px; margin-top: 0.5rem; }
+    .status { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+    .status button { flex: 1; padding: 0.6rem; border: none; border-radius: 5px; cursor: pointer; background: #f1f1f1; }
+    .swipe-buttons { display: flex; justify-content: space-between; }
+    .row { display: flex; gap: 1rem; margin-bottom: 1rem; background: #fff; padding: 0.5rem; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .row img { width: 80px; height: auto; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <header>Mon comparateur d'annonces</header>
+  <div id="nav">
+    <button onclick="switchTab('swipe')">🔄 Swipe</button>
+    <button onclick="switchTab('dashboard')">📋 Tableau</button>
+    <button onclick="switchTab('ajouter')">➕ Ajouter</button>
+  </div>
+  <div id="app">
+    <section id="swipe" class="active">
+      <div class="card" id="current-card"></div>
+      <div class="swipe-buttons">
+        <button onclick="prevCard()">⬅️</button>
+        <button onclick="nextCard()">➡️</button>
+      </div>
+    </section>
+    <section id="dashboard"></section>
+    <section id="ajouter">
+      <div class="field"><label>Lien de l’annonce</label><input type="text" id="new-url" /></div>
+      <div class="field"><label>Titre</label><input type="text" id="new-title" /></div>
+      <div class="field"><label>Prix (€)</label><input type="number" id="new-price" /></div>
+      <div class="field"><label>Surface (m²)</label><input type="number" id="new-surface" /></div>
+      <div class="field"><label>Nombre de pièces</label><input type="number" id="new-pieces" /></div>
+      <div class="field"><label>URL image</label><input type="text" id="new-photo" /></div>
+      <button onclick="addAnnonce()">Ajouter</button>
+    </section>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwTveTDJKvd08Q98GGm647JRsesDA2wRE",
+      authDomain: "annonces-collab.firebaseapp.com",
+      databaseURL: "https://annonces-collab.firebaseio.com",
+      projectId: "annonces-collab",
+      storageBucket: "annonces-collab.firebasestorage.app",
+      messagingSenderId: "661281067613",
+      appId: "1:661281067613:web:28f7fad9397809b636b3b4"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let annonces = [];
+    let currentIndex = 0;
+
+    db.ref('annonces').on('value', snapshot => {
+      annonces = Object.entries(snapshot.val() || {}).map(([id, data]) => ({ id, ...data }));
+      renderCard();
+      renderDashboard();
+    });
+
+    function renderCard() {
+      const data = annonces[currentIndex];
+      if (!data) return;
+      document.getElementById('current-card').innerHTML = `
+        <h3>${data.titre}</h3>
+        <div>${data.pieces} pièces - ${data.surface} m² - ${data.prix} €</div>
+        <img src="${data.photo}" class="photo" />
+        <a href="${data.lien}" target="_blank">Voir l’annonce</a>
+      `;
+    }
+
+    function renderDashboard() {
+      const dash = document.getElementById('dashboard');
+      dash.innerHTML = annonces.map(a => `
+        <div class="row">
+          <img src="${a.photo}" />
+          <div>
+            <div><strong>${a.titre}</strong></div>
+            <div>${a.surface} m² - ${a.prix} €</div>
+            <a href="${a.lien}" target="_blank">Voir</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(id) {
+      document.querySelectorAll('#app > section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function nextCard() {
+      if (currentIndex < annonces.length - 1) currentIndex++;
+      renderCard();
+    }
+
+    function prevCard() {
+      if (currentIndex > 0) currentIndex--;
+      renderCard();
+    }
+
+    function addAnnonce() {
+      const newAnnonce = {
+        titre: document.getElementById('new-title').value,
+        prix: document.getElementById('new-price').value,
+        surface: document.getElementById('new-surface').value,
+        pieces: document.getElementById('new-pieces').value,
+        photo: document.getElementById('new-photo').value,
+        lien: document.getElementById('new-url').value
+      };
+      db.ref('annonces').push(newAnnonce);
+      alert("Annonce ajoutée !");
+      document.getElementById('new-title').value = "";
+      document.getElementById('new-url').value = "";
+      document.getElementById('new-price').value = "";
+      document.getElementById('new-surface').value = "";
+      document.getElementById('new-pieces').value = "";
+      document.getElementById('new-photo').value = "";
+    }
+  </script>
+</body>
+</html>
